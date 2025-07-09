@@ -78,7 +78,7 @@ LABELS = {
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[InlineKeyboardButton("START", callback_data="start_clicked")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Silakan tekan tombol di bawah ini untuk memulai.", reply_markup=reply_markup)
+    await update.message.reply_text("Silakan tekan tombol di bawah ini untuk memulai", reply_markup=reply_markup)
 
 async def start_clicked(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -116,7 +116,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if step == "provider":
         if selected == "Belum Berlangganan Internet":
             context.user_data.update({"provider_detail": "-", "cost": "-", "step": "feedback"})
-            await query.message.reply_text("ℹ️ Provider & abonemen dilewati.")
+            await query.message.reply_text("ℹ️ Provider & abonemen dilewati")
             await ask_next(update, context)
             return
         context.user_data["step"] = "provider_detail"
@@ -147,7 +147,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     step = context.user_data.get("step")
     if step not in STEPS:
-        await update.message.reply_text("Terjadi kesalahan. /start untuk ulang.")
+        await update.message.reply_text("Terjadi kesalahan /start untuk ulang")
         return
 
     context.user_data[step] = update.message.text
@@ -217,6 +217,11 @@ async def show_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 # ────────────── Simpan Data atau Batalkan ──────────────
+# Tambahan impor tetap
+from telegram.helpers import escape_markdown
+from telegram.constants import ParseMode
+
+# Di dalam handle_confirmation
 async def handle_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -226,21 +231,29 @@ async def handle_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE
         if data:
             msg = save_data(data)
             context.user_data.clear()
-            await query.edit_message_text(msg)
+
+            # Escape hasil dari save_data jika mengandung karakter spesial
+            await query.edit_message_text(escape_markdown(msg, version=2), parse_mode=ParseMode.MARKDOWN_V2)
+
             await query.message.reply_text(
-                "👋 Selamat datang di *Sales Visit Bot*\n\n"
-                "❗❗❗ *CATATAN PENTING :* ❗❗❗\n"
-                "GUNAKAN *NAMA YANG SAMA* PERSIS SEPERTI YANG PERTAMA KALI ANDA GUNAKAN SAAT MENGISI DATA SEBELUMNYA. NAMA INI DIGUNAKAN UNTUK MENCATAT KUNJUNGAN ANDA\n\n"    
-                "Gunakan /start untuk input baru\n"
-                "Gunakan /cekdata untuk lihat 30 data terakhir",
+                escape_markdown(
+                    "👋 Selamat datang di *Sales Visit Bot*\n\n"
+                    "❗❗❗ *CATATAN PENTING :* ❗❗❗\n"
+                    "GUNAKAN *NAMA YANG SAMA* PERSIS SEPERTI YANG PERTAMA KALI ANDA GUNAKAN SAAT MENGISI DATA SEBELUMNYA. NAMA INI DIGUNAKAN UNTUK MENCATAT KUNJUNGAN ANDA\n\n"
+                    "Gunakan /start untuk input baru\n"
+                    "Gunakan /cekdata untuk lihat 30 data terakhir"
+                , version=2),
                 parse_mode=ParseMode.MARKDOWN_V2
             )
         else:
-            await query.edit_message_text("❗ Data tidak ditemukan. Silakan ulangi")
+            await query.edit_message_text(
+                escape_markdown("❗ Data tidak ditemukan. Silakan ulangi", version=2),
+                parse_mode=ParseMode.MARKDOWN_V2
+            )
 
     elif query.data == "cancel_data":
         context.user_data.clear()
         await query.edit_message_text(
-            "❌ Input dibatalkan. Silakan mulai ulang dengan /start",
+            escape_markdown("❌ Input dibatalkan. Silakan mulai ulang dengan /start", version=2),
             parse_mode=ParseMode.MARKDOWN_V2
         )

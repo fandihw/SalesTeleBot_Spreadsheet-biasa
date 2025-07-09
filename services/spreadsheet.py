@@ -181,7 +181,7 @@ def save_data(data: dict) -> str:
         _norm(data.get("telda")),
         _norm(data.get("sto")),
         _norm(data.get("poi_name")),
-        _norm(data.get("address")),
+        #_norm(data.get("address")),
     )
 
     all_rows = ws.get_all_records()
@@ -191,7 +191,7 @@ def save_data(data: dict) -> str:
             _norm(row.get("Telda")),
             _norm(row.get("STO")),
             _norm(row.get("POI Name")),
-            _norm(row.get("Alamat")),
+            #_norm(row.get("Alamat")),
         )
         if row_key == key:
             visit_ke += 1
@@ -222,7 +222,7 @@ def save_data(data: dict) -> str:
     ]
 
     ws.append_row(row_vals, value_input_option="USER_ENTERED")
-    return f"➕ Data berhasil ditambahkan ke *{kategori}* (Visit ke-{visit_ke})."
+    return f"➕ Data berhasil ditambahkan ke {kategori} (Visit ke-{visit_ke})"
 
 # ══════════════ AMBIL DATA 30 HARI TERAKHIR DARI SEMUA SHEET ══════════════
 def get_last_30_days_data():
