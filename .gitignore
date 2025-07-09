@@ -1,0 +1,25 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Env
+.env
+.env.*
+
+# Venv
+venv/
+.venv/
+
+# Data
+photos/
+data/
+
+# IDE
+.vscode/
+*.log
+
+# Credentials
+credentials/
+*.json
