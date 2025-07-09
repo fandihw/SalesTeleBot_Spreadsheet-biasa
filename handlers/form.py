@@ -229,6 +229,8 @@ async def handle_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE
             await query.edit_message_text(msg)
             await query.message.reply_text(
                 "👋 Selamat datang di *Sales Visit Bot*\n\n"
+                "❗❗❗ *CATATAN PENTING :* ❗❗❗\n"
+                "GUNAKAN *NAMA YANG SAMA* PERSIS SEPERTI YANG PERTAMA KALI ANDA GUNAKAN SAAT MENGISI DATA SEBELUMNYA. NAMA INI DIGUNAKAN UNTUK MENCATAT KUNJUNGAN ANDA\n\n"    
                 "Gunakan /start untuk input baru\n"
                 "Gunakan /cekdata untuk lihat 30 data terakhir",
                 parse_mode=ParseMode.MARKDOWN_V2

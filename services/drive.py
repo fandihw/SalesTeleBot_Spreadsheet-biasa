@@ -26,6 +26,7 @@ def upload_photo(file_path):
         body=file_metadata,
         media_body=media,
         fields='id'
+        #supportsAllDrives=True <- PENTING untuk folder Shared Drive
     ).execute()
 
     file_id = file.get('id')

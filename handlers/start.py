@@ -3,8 +3,10 @@ from telegram.ext import ContextTypes
 
 WELCOME = (
     "👋 Selamat datang di *Sales Visit Bot*.\n\n"
-    "Gunakan /start untuk memulai input baru.\n"
-    "Gunakan /cekdata untuk melihat 30 data terakhir."
+    "❗❗❗ *CATATAN PENTING :* ❗❗❗\n"
+    "GUNAKAN *NAMA YANG SAMA* PERSIS SEPERTI YANG PERTAMA KALI ANDA GUNAKAN SAAT MENGISI DATA SEBELUMNYA. NAMA INI DIGUNAKAN UNTUK MENCATAT KUNJUNGAN ANDA\n\n"
+    "Gunakan /start untuk input baru\n"
+    "Gunakan /cekdata untuk melihat 30 data terakhir"
 )
 
 HELP = (
