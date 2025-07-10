@@ -4,6 +4,8 @@ from services.spreadsheet import get_last_30_days_data
 from datetime import timezone, timedelta
 from html import escape
 
+ALLOWED_USER_IDS = {"1825371102", "1234567890"}
+
 # Fungsi bantu untuk padding label
 def fmt(label, value):
     return f"{label:<22}: {escape(str(value) if value else '-')}"
@@ -18,7 +20,7 @@ def format_data(entry):
         "📌 Data Kunjungan Sales\n"
         f"{fmt('🗓️ Tanggal/Waktu', time_str)}\n"
         f"{fmt('📁 Kategori', entry.get('kategori'))}\n"
-        f"{fmt('👤 Nama Sales', entry.get('kkontak'))}\n"
+        f"{fmt('👤 Nama Sales', entry.get('nama_sales'))}\n"
         f"{fmt('🌏 Wilayah Telda', entry.get('telda'))}\n"
         f"{fmt('🏬 STO', entry.get('sto'))}\n"
         f"{fmt('🎯 Jenis Kegiatan', entry.get('kegiatan'))}\n"
@@ -45,13 +47,17 @@ def format_data(entry):
 # Handler /cekdata
 # Handler untuk /cekdata
 async def handle_cekdata(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    data = get_last_30_days_data()
+    user_id = str(update.effective_user.id)
+    if user_id not in ALLOWED_USER_IDS:
+        await update.message.reply_text("❌ Anda tidak memiliki izin untuk melihat data ini")
+        return
 
-    if not data:
-        await update.message.reply_text("📭 Tidak ada data dalam 30 hari terakhir.")
+    entries = get_last_30_days_data()
+    if not entries:
+        await update.message.reply_text("📭 Tidak ada data dalam 30 hari terakhir")
         return
 
     # Kirim masing-masing entry sebagai pesan terpisah (maks 30)
-    for i, entry in enumerate(data[:30], start=1):
+    for i, entry in enumerate(entries[:30], start=1):
         message = format_data(entry)
         await update.message.reply_text(message, parse_mode="HTML")

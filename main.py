@@ -20,9 +20,12 @@ def main():
     # ───── Callback Inline Keyboard ─────
     app.add_handler(CallbackQueryHandler(form.handle_callback, pattern="^(?!confirm_data|cancel_data).*"))  # Semua selain confirm/cancel
     app.add_handler(CallbackQueryHandler(form.handle_confirmation, pattern="^(confirm_data|cancel_data)$"))
-    
-    # ───── Pesan Teks ─────
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, form.handle_text))
+
+    # 🆕 Pesan Teks → tangani dulu jika user belum whitelist
+    # app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, start.handle_pending_user_name))  # 🆕 tambahkan duluan
+
+    # Teks normal (jawaban form)
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, form.handle_text))  # Tetap, tapi di bawah
 
     # ───── Upload Foto ─────
     app.add_handler(MessageHandler(filters.PHOTO, form.handle_photo))

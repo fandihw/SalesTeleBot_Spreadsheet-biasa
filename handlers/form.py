@@ -4,6 +4,8 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
 from telegram.helpers import escape_markdown
+from services import is_user_allowed
+
 from services.spreadsheet import save_data
 from services.drive import upload_photo
 
@@ -25,7 +27,7 @@ STEPS = [
     "kategori", "nama_sales", "telda", "sto", "kegiatan", "poi_name", "address",
     "ekosistem", "contact_name", "contact_position", "contact_phone",
     "provider", "provider_detail", "cost", "feedback", "feedback_detail",
-    "detail_info"
+    "detail_info", "hasil_fu"
 ]
 
 OPTIONS = {
@@ -71,10 +73,11 @@ LABELS = {
     "cost": "Abonemen",
     "feedback": "Feedback",
     "feedback_detail": "Detail Feedback",
-    "detail_info": "Info Tambahan",
+    "detail_info": "Informasi Detail",
+    "hasil_fu": "Hasil Follow Up",
 }
 
-# ────────────── START COMMAND ──────────────
+# ────────────── START tombol awal ──────────────
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[InlineKeyboardButton("START", callback_data="start_clicked")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -92,6 +95,10 @@ async def start_clicked(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ────────────── Handler Callback ──────────────
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
+    user_id = update.effective_user.id
+    if not is_user_allowed(user_id):
+        await query.message.reply_text("❌ Anda tidak diizinkan mengisi form ini.")
+        return
     await query.answer()
     selected = query.data
 
@@ -146,12 +153,26 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ────────────── Handler Input Text ──────────────
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     step = context.user_data.get("step")
-    if step not in STEPS:
-        await update.message.reply_text("Terjadi kesalahan /start untuk ulang")
+
+    user_id = update.effective_user.id
+    if not is_user_allowed(user_id):
+        await update.message.reply_text("❌ Anda tidak diizinkan mengisi form ini.")
+        return
+
+
+    if not step or step not in STEPS:
+        await update.message.reply_text("Terjadi kesalahan. Ketik /start untuk memulai ulang.")
+        return
+
+    if not update.message.text.strip():
+        await update.message.reply_text("❗ Input tidak boleh kosong. Silakan masukkan kembali.")
         return
 
     context.user_data[step] = update.message.text
-    await update.message.reply_text(f"✅ Anda mengisi: *{escape_markdown(update.message.text, version=2)}*", parse_mode=ParseMode.MARKDOWN_V2)
+    await update.message.reply_text(
+        f"✅ Anda mengisi: *{escape_markdown(update.message.text.strip(), version=2)}*",
+        parse_mode=ParseMode.MARKDOWN_V2
+    )
 
     next_idx = STEPS.index(step) + 1
     if next_idx < len(STEPS):
@@ -160,9 +181,21 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("📸 Silakan kirim foto eviden kegiatan:")
 
-# ────────────── Pertanyaan Langkah Berikutnya ──────────────
+# ────────────── Pertanyaan Selanjutnya ──────────────
 async def ask_next(update: Update, context: ContextTypes.DEFAULT_TYPE):
     step = context.user_data.get("step")
+    kategori = context.user_data.get("kategori")
+    
+    # 🔒 Skip "hasil_fu" jika kategori bukan Follow Up
+    if step == "hasil_fu" and kategori != "Follow Up":
+        next_idx = STEPS.index(step) + 1
+        if next_idx < len(STEPS):
+            context.user_data["step"] = STEPS[next_idx]
+            await ask_next(update, context)
+        else:
+            await update.message.reply_text("📸 Silakan kirim foto eviden kegiatan:")
+        return
+
     label = LABELS.get(step, step)
     msg = update.effective_message
 
@@ -172,9 +205,15 @@ async def ask_next(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await msg.reply_text(f"Masukkan {label}:")
 
-# ────────────── Handler Upload Foto ──────────────
+
+# ────────────── Upload Foto ──────────────
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+    
+    if not is_user_allowed(user_id):
+        await update.message.reply_text("❌ Anda tidak diizinkan mengisi form ini.")
+        return
+
     photo_file = await update.message.photo[-1].get_file()
 
     os.makedirs("photos", exist_ok=True)
@@ -196,8 +235,14 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ────────────── Konfirmasi Akhir ──────────────
 async def show_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE):
     form_data = context.user_data.get("form_data", {})
+    kategori = form_data.get("kategori", "Visit Baru")
     lines = ["📋 Berikut ringkasan data yang Anda input:"]
+
     for key in STEPS:
+        # Jangan tampilkan "hasil_fu" jika bukan Follow Up
+        if key == "hasil_fu" and kategori != "Follow Up":
+            continue
+
         label = LABELS.get(key, key)
         value = form_data.get(key, "-")
         lines.append(f"*{escape_markdown(label, version=2)}*: {escape_markdown(str(value), version=2)}")
@@ -216,12 +261,7 @@ async def show_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-# ────────────── Simpan Data atau Batalkan ──────────────
-# Tambahan impor tetap
-from telegram.helpers import escape_markdown
-from telegram.constants import ParseMode
-
-# Di dalam handle_confirmation
+# ────────────── Simpan atau Batalkan ──────────────
 async def handle_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -231,19 +271,16 @@ async def handle_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE
         if data:
             msg = save_data(data)
             context.user_data.clear()
-
-            # Escape hasil dari save_data jika mengandung karakter spesial
             await query.edit_message_text(escape_markdown(msg, version=2), parse_mode=ParseMode.MARKDOWN_V2)
 
             await query.message.reply_text(
-                escape_markdown(
                     "👋 Selamat datang di *Sales Visit Bot*\n\n"
                     "❗❗❗ *CATATAN PENTING :* ❗❗❗\n"
-                    "GUNAKAN *NAMA YANG SAMA* PERSIS SEPERTI YANG PERTAMA KALI ANDA GUNAKAN SAAT MENGISI DATA SEBELUMNYA. NAMA INI DIGUNAKAN UNTUK MENCATAT KUNJUNGAN ANDA\n\n"
+                    "GUNAKAN *NAMA YANG SAMA* PERSIS SEPERTI YANG PERTAMA KALI ANDA GUNAKAN SAAT MENGISI DATA\n\n"
                     "Gunakan /start untuk input baru\n"
-                    "Gunakan /cekdata untuk lihat 30 data terakhir"
-                , version=2),
-                parse_mode=ParseMode.MARKDOWN_V2
+                    "Gunakan /cekdata untuk lihat 30 data terakhir",
+                    
+                    parse_mode=ParseMode.MARKDOWN_V2
             )
         else:
             await query.edit_message_text(
@@ -254,6 +291,6 @@ async def handle_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE
     elif query.data == "cancel_data":
         context.user_data.clear()
         await query.edit_message_text(
-            escape_markdown("❌ Input dibatalkan. Silakan mulai ulang dengan /start", version=2),
+            escape_markdown("❌ Input dibatalkan. Mohon lebih teliti lagi. Silakan mulai ulang dengan /start", version=2),
             parse_mode=ParseMode.MARKDOWN_V2
         )

@@ -9,3 +9,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 # Google Drive
 DRIVE_FOLDER_ID = os.getenv("DRIVE_FOLDER_ID")     # id folder drive
 SERVICE_ACCOUNT_PATH = os.getenv("SERVICE_ACCOUNT_PATH")
+
+ALLOWED_USER_IDS = {
+    123454325,  # ID 
+}
