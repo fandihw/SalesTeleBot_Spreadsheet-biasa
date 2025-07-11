@@ -21,9 +21,6 @@ def main():
     app.add_handler(CallbackQueryHandler(form.handle_callback, pattern="^(?!confirm_data|cancel_data).*"))  # Semua selain confirm/cancel
     app.add_handler(CallbackQueryHandler(form.handle_confirmation, pattern="^(confirm_data|cancel_data)$"))
 
-    # 🆕 Pesan Teks → tangani dulu jika user belum whitelist
-    # app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, start.handle_pending_user_name))  # 🆕 tambahkan duluan
-
     # Teks normal (jawaban form)
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, form.handle_text))  # Tetap, tapi di bawah
 
